@@ -1,0 +1,86 @@
+import pandas as pd
+import numpy as np
+from sklearn.metrics import classification_report, accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+
+
+data = pd.read_csv('winequality-red.csv')
+
+# Visualizar los primeros datos para inspección
+
+data.info()
+data.describe()
+
+data.head(10)
+
+corr_matrix = data.corr()
+plt.figure(figsize=(20,15))
+sns.heatmap(corr_matrix, annot=True)
+plt.show()
+
+cor_target = abs(corr_matrix["quality"])
+relevant_features = cor_target[cor_target>0.1]
+relevant_features
+
+to_drop = cor_target[cor_target<0.1]
+to_drop
+
+type(to_drop)
+
+# We first convert the data type to frame, which is another pandas data type
+to_drop_frame = to_drop.to_frame()
+to_drop_frame
+
+row_names = to_drop_frame.index
+row_names_list = list(row_names)
+row_names_list.append('quality')
+print(row_names_list)
+y = data['quality'].values
+X = data.drop(row_names_list, axis=1).values
+
+steps = [('scaler', StandardScaler()),
+('dec_tree', DecisionTreeClassifier())]
+
+pipeline = Pipeline(steps)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=21)
+
+params = {"dec_tree__criterion":['gini', 'entropy'],
+         "dec_tree__max_depth":np.arange(3, 15)
+         }
+from sklearn.model_selection import GridSearchCV
+for cv in range(3,10):
+    cv_grid = GridSearchCV(pipeline, param_grid=params,cv=cv)
+    cv_grid.fit(X_train, y_train)
+    print("%d fold score: %3.2f" %(cv,cv_grid.score(X_test, y_test)))
+    print("Best parameters: ", cv_grid.best_params_)
+
+best_tree = DecisionTreeClassifier(criterion='gini', max_depth=4)
+best_tree.fit(X_train, y_train)
+y_pred = best_tree.predict(X_test)
+
+from sklearn.metrics import classification_report
+print(classification_report(y_test, y_pred))
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=21)
+params = {"dec_tree__criterion":['gini', 'entropy'],
+         "dec_tree__max_depth":np.arange(3, 15)
+         }
+from sklearn.model_selection import GridSearchCV
+for cv in range(3,6):
+    cv_grid = GridSearchCV(pipeline, param_grid=params,cv=cv)
+    cv_grid.fit(X_train, y_train)
+    print("%d fold score: %3.2f" %(cv,cv_grid.score(X_test, y_test)))
+    print("Best parameters: ", cv_grid.best_params_)
+
+best_tree = DecisionTreeClassifier(criterion='gini', max_depth=6)
+best_tree.fit(X_train, y_train)
+y_pred = best_tree.predict(X_test)
+from sklearn.metrics import classification_report
+print(classification_report(y_test, y_pred))
