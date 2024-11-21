@@ -1,0 +1,133 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression 
+from sklearn.linear_model import Lasso
+from sklearn import metrics
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+
+
+# Cargar el archivo CSV
+data = pd.read_csv('CAR DETAILS FROM CAR DEKHO.csv')
+
+# Visualizar las primeras filas del dataset
+data.head(5)
+data.tail(5)
+data.describe()
+data.shape
+
+data.info()
+
+# Verificar valores nulos
+print("Valores nulos por columna:")
+print(data.isnull().sum())
+
+
+# Transformar variables categóricas a valores numéricos
+from sklearn.preprocessing import LabelEncoder
+
+categorical_cols = ['fuel', 'seller_type', 'transmission', 'owner']
+le = LabelEncoder()
+
+for col in categorical_cols:
+    data[col] = le.fit_transform(data[col])
+
+# Crear nueva variable "edad del auto" en lugar de año
+from datetime import datetime
+
+current_year = datetime.now().year
+data['car_age'] = current_year - data['year']
+data.drop('year', axis=1, inplace=True)  # Eliminar la columna 'year'
+
+# Eliminar columnas irrelevantes como 'name' (si no aportan valor al modelo)
+data.drop('name', axis=1, inplace=True)
+
+# Normalizar variables numéricas
+from sklearn.preprocessing import MinMaxScaler
+
+scaler = MinMaxScaler()
+data[['selling_price', 'km_driven', 'car_age']] = scaler.fit_transform(data[['selling_price', 'km_driven', 'car_age']])
+
+# Calcular la matriz de correlación
+correlation_matrix = data.corr()
+
+# Mostrar las correlaciones de 'selling_price' con las otras columnas
+print("Correlación con 'selling_price':")
+print(correlation_matrix['selling_price'].sort_values(ascending=False))
+
+# Visualizar la matriz de correlación
+plt.figure(figsize=(10, 6))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
+plt.title("Matriz de Correlación")
+plt.show()
+
+# Dividir las características y el objetivo
+X = data[['transmission', 'car_age', 'km_driven']]
+
+y = data['selling_price']
+
+from sklearn.preprocessing import StandardScaler
+
+# Escalado de las características
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Dividir los datos en entrenamiento y prueba
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+#lasso = Lasso(alpha=0.1)  # Ajusta el valor de alpha según sea necesario
+#lasso.fit(X_train, y_train)
+
+model = LinearRegression()
+
+model.fit(X_train, y_train)
+
+train_pred = model.predict(X_train)
+
+#R squared error
+error_score = metrics.r2_score(Y_train, train_pred)
+print("R squared error: ", error_score)
+
+test_pred = model.predict(X_test)
+
+#R squared error
+error_score = metrics.r2_score(y_test, test_pred)
+print("R squared error: ", error_score)
+
+# Predicciones en el conjunto de Test
+y_pred = model.predict(X_test)
+
+# Calcular las métricas
+mae = mean_absolute_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_test, y_pred)
+
+# Visualizar la distribución de selling_price
+plt.figure(figsize=(8, 6))
+sns.histplot(data['selling_price'], kde=True, color='blue')
+plt.title("Distribución de Precios de Venta")
+plt.xlabel("Precio de Venta")
+plt.ylabel("Frecuencia")
+plt.show()
+
+data['selling_price'] = np.log1p(data['selling_price'])
+
+# Imprimir los resultados
+print("Evaluación del modelo:")
+print(f"MAE (Mean Absolute Error): {mae:.2f}")
+print(f"MSE (Mean Squared Error): {mse:.2f}")
+print(f"RMSE (Root Mean Squared Error): {rmse:.2f}")
+print(f"R² (Coeficiente de Determinación): {r2:.2f}")
+
+# Crear una gráfica de valores reales vs predichos
+plt.figure(figsize=(8, 6))
+plt.scatter(y_test, y_pred, alpha=0.6, color='blue')
+plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
+plt.xlabel("Valores Reales")
+plt.ylabel("Valores Predichos")
+plt.title("Valores Reales vs Predichos")
+plt.show()
+
