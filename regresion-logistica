@@ -1,0 +1,78 @@
+# Importar bibliotecas necesarias
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+# Cargar los datos
+data = pd.read_csv('heart_cleveland_upload.csv')
+
+# Visualizar los primeros datos para inspección
+print(data.head())
+
+# Dividir los datos en características (X) y variable objetivo (y)
+# Suponiendo que la columna objetivo se llama 'target'. Cambiar si es diferente.
+X = data.drop(columns=['condition'])
+y = data['condition']
+
+# Dividir los datos en conjuntos de entrenamiento y prueba
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Crear y entrenar el modelo de regresión logística
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Realizar predicciones
+y_pred = model.predict(X_test)
+
+# Evaluar el modelo
+accuracy = accuracy_score(y_test, y_pred)
+print("\nPrecisión del modelo:", accuracy)
+
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("\nMatriz de confusión:")
+print(conf_matrix)
+
+class_report = classification_report(y_test, y_pred)
+print("\nReporte de clasificación:")
+print(class_report)
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import roc_curve, auc
+
+# 1. Matriz de confusión con heatmap
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['No Enfermedad', 'Enfermedad'], yticklabels=['No Enfermedad', 'Enfermedad'])
+plt.xlabel('Predicción')
+plt.ylabel('Valor Real')
+plt.title('Matriz de Confusión')
+plt.show()
+
+# 2. Curva ROC
+y_pred_prob = model.predict_proba(X_test)[:, 1]  # Probabilidades para la clase positiva
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
+roc_auc = auc(fpr, tpr)
+
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='blue', label=f'Curva ROC (AUC = {roc_auc:.2f})')
+plt.plot([0, 1], [0, 1], color='gray', linestyle='--')
+plt.xlabel('Tasa de Falsos Positivos (FPR)')
+plt.ylabel('Tasa de Verdaderos Positivos (TPR)')
+plt.title('Curva ROC')
+plt.legend(loc='lower right')
+plt.grid()
+plt.show()
+
+# 3. Distribución de probabilidades predichas
+plt.figure(figsize=(8, 6))
+sns.histplot(y_pred_prob, bins=20, kde=True, color='purple')
+plt.xlabel('Probabilidad Predicha para Enfermedad Cardíaca')
+plt.ylabel('Frecuencia')
+plt.title('Distribución de Probabilidades Predichas')
+plt.grid()
+plt.show()
+
+
+
