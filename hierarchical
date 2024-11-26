@@ -1,0 +1,71 @@
+# Importar librerías necesarias
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from scipy.cluster.hierarchy import dendrogram, linkage
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.metrics import silhouette_score, calinski_harabasz_score
+
+# Cargar el dataset
+df = pd.read_csv('clientes_supermercado.csv')
+
+# Mostrar las primeras filas del dataset
+print(df.head())
+
+# Información del dataset
+print(df.info())
+
+# Estadísticas descriptivas
+print(df.describe())
+
+# Visualización de distribuciones
+sns.pairplot(df.drop('CustomerID', axis=1), hue='Gender')
+plt.show()
+
+# Tratamiento de valores faltantes (si los hubiera)
+df = df.dropna()  # O usar técnicas como imputación
+
+# Codificación de variables categóricas
+df['Gender'] = df['Gender'].map({'Male': 0, 'Female': 1})
+
+# Normalización de los datos
+scaler = StandardScaler()
+df_scaled = scaler.fit_transform(df.drop('CustomerID', axis=1))
+
+# Aplicar PCA para reducción de dimensionalidad (opcional)
+pca = PCA(n_components=2)  # Elegir el número de componentes principales
+df_pca = pca.fit_transform(df_scaled)
+
+print(f'Varianza explicada por cada componente: {pca.explained_variance_ratio_}')
+print(f'Componentes principales:\n{pca.components_}')
+
+# Realizar el clustering jerárquico
+Z = linkage(df_pca, method='ward')
+
+# Visualizar el dendrograma
+plt.figure(figsize=(10, 7))
+dendrogram(Z)
+plt.show()
+
+# Entrenar el modelo con un número específico de clusters
+model = AgglomerativeClustering(n_clusters=3)
+model.fit(df_pca)
+labels = model.labels_
+
+# Evaluar el desempeño del modelo
+silhouette_avg = silhouette_score(df_pca, labels)
+calinski_harabasz = calinski_harabasz_score(df_pca, labels)
+
+print(f'Coeficiente de Silhouette: {silhouette_avg}')
+print(f'Índice de Calinski-Harabasz: {calinski_harabasz}')
+
+# Visualización de clusters
+plt.figure(figsize=(10, 7))
+plt.scatter(df_pca[:, 0], df_pca[:, 1], c=labels, cmap='rainbow')
+plt.xlabel('Componente Principal 1')
+plt.ylabel('Componente Principal 2')
+plt.title('Clusters de Clientes')
+plt.show()
